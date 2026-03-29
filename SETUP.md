@@ -1,53 +1,244 @@
-# Setup Guide for Rust Queue System
+# Setup Guide for rst_queue
 
-## Step 1: Install Rust
+Complete setup instructions for building and installing rst_queue from source.
 
-### Windows
+## Prerequisites
 
-Option 1: Download installer
-- Visit https://win.rustup.rs/x86_64
-- Run the downloaded `rustup-init.exe`
-- Follow the prompts
+- **Python**: 3.8 or later
+- **Rust**: 1.70 or later
+- **pip**: Latest version
 
-Option 2: PowerShell
-```powershell
-$ProgressPreference = 'SilentlyContinue'; Invoke-WebRequest -Uri https://win.rustup.rs/x86_64 -OutFile rustup-init.exe; .\rustup-init.exe -y
+## Quick Start (Recommended)
+
+### Install from PyPI
+
+```bash
+pip install rst_queue
 ```
 
-### Linux/macOS
+Then you're ready to use:
+
+```python
+from rst_queue import AsyncQueue
+
+queue = AsyncQueue()
+queue.push(b"Hello World")
+```
+
+## Building from Source
+
+### Step 1: Install Rust
+
+If you don't have Rust installed, get it from [rustup.rs](https://rustup.rs/):
+
+**Windows:**
+```powershell
+$ProgressPreference = 'SilentlyContinue'
+Invoke-WebRequest -Uri https://win.rustup.rs/x86_64 -OutFile rustup-init.exe
+.\rustup-init.exe -y
+```
+
+**Linux/macOS:**
 ```bash
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source $HOME/.cargo/env
 ```
 
-### Verify Installation
+**Verify installation:**
 ```bash
 rustc --version
 cargo --version
 ```
 
-## Step 2: Build the Rust Project
-
-Navigate to the project directory:
+### Step 2: Clone the Repository
 
 ```bash
-cd d:\rust_queue
+git clone https://github.com/suraj202923/rst_queue.git
+cd rst_queue
 ```
 
-Build in debug mode (faster compilation):
+### Step 3: Install maturin
 
 ```bash
-cargo build
+pip install maturin
 ```
 
-Or build in release mode (optimized for performance):
+### Step 4: Build and Install
+
+**Option A: Development Install (editable)**
 
 ```bash
-cargo build --release
+pip install -e .
 ```
 
-## Step 3: Run Examples
+This installs the package in development mode, so changes to the Rust code are reflected after a rebuild.
 
-### Run the Basic Example
+**Option B: Build Wheel and Install**
+
+```bash
+maturin build --release
+pip install target/wheels/rst_queue-*.whl
+```
+
+**Option C: Build Locally (no installation)**
+
+```bash
+maturin develop
+```
+
+### Step 5: Verify Installation
+
+```python
+python -c "from rst_queue import AsyncQueue, ExecutionMode; print('Installation successful!')"
+```
+
+## Development Setup
+
+For development and testing, install development dependencies:
+
+```bash
+pip install -e ".[dev]"
+```
+
+This installs:
+- pytest: Testing framework
+- pytest-cov: Coverage reporting
+- maturin: Build tool
+
+### Running Tests
+
+**Rust tests:**
+```bash
+cargo test
+```
+
+**Python tests:**
+```bash
+pytest tests/
+```
+
+**With coverage:**
+```bash
+pytest tests/ --cov=rst_queue --cov-report=html
+```
+
+## Building Examples
+
+### Python Examples
+
+```bash
+python python_example.py
+```
+
+### Rust Examples
+
+```bash
+cargo run --example example
+```
+
+### Rust Benchmarks
+
+```bash
+cargo run --release --bin benchmark
+```
+
+## Troubleshooting
+
+### "maturin: command not found"
+
+Install maturin:
+```bash
+pip install maturin
+```
+
+### "rust: command not found" or "cargo: command not found"
+
+Install Rust from [rustup.rs](https://rustup.rs/)
+
+### "Python version not compatible"
+
+rst_queue requires Python 3.8+. Check your version:
+```bash
+python --version
+```
+
+If using multiple Python versions, specify the version explicitly:
+```bash
+python3.10 -m pip install rst_queue
+python3.10 -c "from rst_queue import AsyncQueue"
+```
+
+### Build Errors on macOS/Linux
+
+Ensure Python development headers are installed:
+
+**Ubuntu/Debian:**
+```bash
+sudo apt-get install python3-dev
+```
+
+**macOS:**
+```bash
+xcode-select --install
+```
+
+### "error: failed to run custom build command"
+
+This usually means the Rust compiler needs an update:
+```bash
+rustup update
+```
+
+## Platform-Specific Notes
+
+### Windows
+
+- Use the x86_64 installer from rustup.rs
+- MinGW and MSVC toolchains are both supported
+- For better compatibility, use MSVC (default)
+
+### macOS
+
+- Requires Xcode Command Line Tools:
+  ```bash
+  xcode-select --install
+  ```
+- Works with both Apple Silicon (M1/M2) and Intel Macs
+
+### Linux
+
+- Works with all major distributions
+- GCC/Clang toolchain required
+- Build tools: `build-essential` (Ubuntu) or equivalent
+
+## Environment Variables
+
+Useful environment variables for the build process:
+
+```bash
+# Use specific Rust version
+RUSTUP_TOOLCHAIN=1.70.0
+
+# Enable verbose output
+MATURIN_VERBOSE=1
+
+# Python executable (useful for multi-version systems)
+PYTHON_SYS_EXECUTABLE=/usr/bin/python3.10
+```
+
+## Next Steps
+
+After installation, check out:
+
+1. **README.md** - Usage examples and API reference
+2. **python_example.py** - Example Python usage
+3. **examples_advanced.py** - Advanced features
+
+## Support
+
+- 📖 Documentation: See [README.md](README.md)
+- 🐛 Issues: [GitHub Issues](https://github.com/suraj202923/rst_queue/issues)
+- 💬 Discussions: [GitHub Discussions](https://github.com/suraj202923/rst_queue/discussions)
 
 ```bash
 cargo run --release --bin queue_example

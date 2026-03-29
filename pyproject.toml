@@ -28,6 +28,14 @@ classifiers = [
 ]
 repository = "https://github.com/suraj202923/rst_queue"
 
+[project.optional-dependencies]
+dev = ["pytest>=7.0", "pytest-cov>=4.0", "maturin>=1.0"]
+
 [tool.maturin]
 python-source = "python"
 module-name = "rst_queue._rst_queue"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+addopts = "-v --tb=short"

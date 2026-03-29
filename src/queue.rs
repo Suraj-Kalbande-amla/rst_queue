@@ -39,12 +39,23 @@ pub struct QueueItem {
 /// Worker function type for processing queue items
 pub type WorkerFn = Arc<dyn Fn(u64, Vec<u8>) + Send + Sync>;
 
+/// Queue statistics
+#[derive(Clone, Debug)]
+pub struct QueueStats {
+    pub total_pushed: u64,
+    pub total_processed: u64,
+    pub total_errors: u64,
+    pub active_workers: usize,
+}
+
 /// Async Queue with parallel/sequential processing capabilities
 pub struct AsyncQueue {
     sender: Arc<Mutex<Option<Sender<QueueItem>>>>,
     mode: Arc<Mutex<ExecutionMode>>,
     counter: Arc<Mutex<u64>>,
     active_workers: Arc<Mutex<usize>>,
+    processed_count: Arc<Mutex<u64>>,
+    error_count: Arc<Mutex<u64>>,
 }
 
 impl AsyncQueue {
@@ -68,6 +79,8 @@ impl AsyncQueue {
             mode: Arc::new(Mutex::new(execution_mode)),
             counter: Arc::new(Mutex::new(0)),
             active_workers: Arc::new(Mutex::new(0)),
+            processed_count: Arc::new(Mutex::new(0)),
+            error_count: Arc::new(Mutex::new(0)),
         })
     }
 
@@ -111,6 +124,26 @@ impl AsyncQueue {
         *self.counter.lock().unwrap()
     }
 
+    /// Get total items processed
+    pub fn total_processed(&self) -> u64 {
+        *self.processed_count.lock().unwrap()
+    }
+
+    /// Get total errors during processing
+    pub fn total_errors(&self) -> u64 {
+        *self.error_count.lock().unwrap()
+    }
+
+    /// Get queue statistics
+    pub fn get_stats(&self) -> QueueStats {
+        QueueStats {
+            total_pushed: self.total_pushed(),
+            total_processed: self.total_processed(),
+            total_errors: self.total_errors(),
+            active_workers: self.active_workers(),
+        }
+    }
+
     /// Start the queue with a worker function
     ///
     /// # Arguments
@@ -142,12 +175,14 @@ impl AsyncQueue {
                 let rx_clone = Arc::clone(&rx_arc);
                 let worker_clone = Arc::clone(&worker);
                 let active_clone = Arc::clone(&self.active_workers);
+                let processed_clone = Arc::clone(&self.processed_count);
 
                 std::thread::spawn(move || {
                     if let Some(receiver) = rx_clone.lock().unwrap().take() {
                         for item in receiver {
                             *active_clone.lock().unwrap() += 1;
                             worker_clone(item.id, item.data);
+                            *processed_clone.lock().unwrap() += 1;
                             *active_clone.lock().unwrap() -= 1;
                         }
                     }
@@ -158,12 +193,14 @@ impl AsyncQueue {
                     let rx_clone = Arc::clone(&rx_arc);
                     let worker_clone = Arc::clone(&worker);
                     let active_clone = Arc::clone(&self.active_workers);
+                    let processed_clone = Arc::clone(&self.processed_count);
 
                     std::thread::spawn(move || {
                         if let Some(receiver) = rx_clone.lock().unwrap().take() {
                             for item in receiver {
                                 *active_clone.lock().unwrap() += 1;
                                 worker_clone(item.id, item.data);
+                                *processed_clone.lock().unwrap() += 1;
                                 *active_clone.lock().unwrap() -= 1;
                             }
                         }
@@ -173,5 +210,53 @@ impl AsyncQueue {
         }
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    #[test]
+    fn test_queue_creation() {
+        let queue = AsyncQueue::new(0, 128);
+        assert!(queue.is_ok());
+    }
+
+    #[test]
+    fn test_push_item() {
+        let queue = AsyncQueue::new(0, 128).unwrap();
+        let result = queue.push("test".as_bytes().to_vec());
+        assert!(result.is_ok());
+        assert_eq!(queue.total_pushed(), 1);
+    }
+
+    #[test]
+    fn test_get_mode() {
+        let queue = AsyncQueue::new(0, 128).unwrap();
+        assert_eq!(queue.get_mode(), 0);
+
+        let queue_parallel = AsyncQueue::new(1, 128).unwrap();
+        assert_eq!(queue_parallel.get_mode(), 1);
+    }
+
+    #[test]
+    fn test_set_mode() {
+        let queue = AsyncQueue::new(0, 128).unwrap();
+        assert_eq!(queue.get_mode(), 0);
+        queue.set_mode(1).unwrap();
+        assert_eq!(queue.get_mode(), 1);
+    }
+
+    #[test]
+    fn test_stats() {
+        let queue = AsyncQueue::new(0, 128).unwrap();
+        queue.push("test1".as_bytes().to_vec()).unwrap();
+        queue.push("test2".as_bytes().to_vec()).unwrap();
+
+        let stats = queue.get_stats();
+        assert_eq!(stats.total_pushed, 2);
+        assert_eq!(stats.active_workers, 0);
     }
 }

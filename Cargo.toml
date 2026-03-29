@@ -11,8 +11,12 @@ readme = "README.md"
 keywords = ["queue", "async", "crossbeam", "concurrent"]
 categories = ["data-structures", "concurrency"]
 
+[lib]
+crate-type = ["cdylib"]
+
 [dependencies]
 crossbeam-channel = "0.5"
+pyo3 = { version = "0.21", features = ["extension-module"] }
 
 [[bin]]
 name = "queue_example"
