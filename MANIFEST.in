@@ -1,0 +1,8 @@
+include README.md
+include LICENSE
+include SETUP.md
+include CONTRIBUTING.md
+include CONTRIBUTORS.md
+recursive-include src **/*.rs
+recursive-include python **/*.py
+recursive-include tests **/*.py
